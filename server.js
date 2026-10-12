@@ -47,6 +47,25 @@ app.use(express.json({ limit: '1mb' }));
 // API ROUTES
 // ==========================================
 
+// 0. Root Status
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    service: 'GhostDrop P2P WebRTC Signaling Server',
+    storage: '0 MB (Direct Browser-to-Browser Streaming)',
+    fileSizeLimit: 'Unlimited',
+    activeTunnels: tunnels.size,
+    endpoints: {
+      health: '/api/health',
+      activeChannels: '/api/tunnel/active',
+      createChannel: 'POST /api/tunnel/create',
+      channelInfo: 'GET /api/tunnel/info/:code',
+      signal: 'POST /api/tunnel/signal/:code',
+      poll: 'GET /api/tunnel/poll/:code'
+    }
+  });
+});
+
 // 1. Health Check
 app.get('/api/health', (req, res) => {
   res.json({
