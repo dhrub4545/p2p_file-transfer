@@ -1,9 +1,21 @@
 {
   "version": 2,
-  "rewrites": [
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/api/index.js"
+      "src": "api/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.js",
+      "methods": ["GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"],
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS, PUT, PATCH",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With"
+      }
     }
   ]
 }

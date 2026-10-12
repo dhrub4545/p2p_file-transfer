@@ -38,9 +38,10 @@ function generateUniqueCode() {
 // Middleware
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+app.options('*', cors());
 app.use(express.json({ limit: '1mb' }));
 
 // ==========================================
