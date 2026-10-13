@@ -14,17 +14,19 @@ const EXPIRY_MS = EXPIRY_HOURS * 60 * 60 * 1000; // 2 hours
 // Zero file data is ever stored here! Only WebRTC handshake signals.
 const tunnels = new Map();
 
-// Helper: Periodic room cleanup for inactive rooms older than 2 hours
+// Helper: Periodic room cleanup for inactive rooms
 function cleanupExpiredTunnels() {
   const now = Date.now();
   for (const [code, tunnel] of tunnels.entries()) {
-    if (now >= tunnel.expiresAt) {
+    const lastActivity = tunnel.lastHeartbeat || tunnel.createdAt;
+    // Clean up if expired or inactive without heartbeat for 60 seconds
+    if (now >= tunnel.expiresAt || (now - lastActivity > 60 * 1000)) {
       tunnels.delete(code);
       console.log(`[P2P Tunnel] Cleaned up inactive tunnel: ${code}`);
     }
   }
 }
-setInterval(cleanupExpiredTunnels, 60 * 1000);
+setInterval(cleanupExpiredTunnels, 30 * 1000);
 
 // Helper: Generate unique 6-digit room code
 function generateUniqueCode() {
@@ -60,6 +62,7 @@ app.get('/', (req, res) => {
       health: '/api/health',
       activeChannels: '/api/tunnel/active',
       createChannel: 'POST /api/tunnel/create',
+      heartbeat: 'POST /api/tunnel/heartbeat/:code',
       channelInfo: 'GET /api/tunnel/info/:code',
       signal: 'POST /api/tunnel/signal/:code',
       poll: 'GET /api/tunnel/poll/:code'
@@ -69,6 +72,7 @@ app.get('/', (req, res) => {
 
 // 1. Health Check
 app.get('/api/health', (req, res) => {
+  cleanupExpiredTunnels();
   res.json({
     status: 'online',
     mode: 'p2p-webrtc-tunnel',
@@ -88,7 +92,7 @@ app.post('/api/tunnel/create', async (req, res) => {
       return res.status(400).json({ success: false, message: 'File name is required' });
     }
 
-    const code = generateUniqueCode();
+    const code = (req.body.code && String(req.body.code).trim()) || generateUniqueCode();
     const tunnelId = uuidv4();
     const now = Date.now();
     const expiresAt = now + EXPIRY_MS;
@@ -110,6 +114,7 @@ app.post('/api/tunnel/create', async (req, res) => {
       },
       createdAt: now,
       expiresAt: expiresAt,
+      lastHeartbeat: now,
       senderSignals: [],
       receiverSignals: [],
       connected: false
@@ -132,6 +137,17 @@ app.post('/api/tunnel/create', async (req, res) => {
     console.error('Error creating tunnel:', err);
     res.status(500).json({ success: false, message: 'Failed to create tunnel' });
   }
+});
+
+// 2.1 Heartbeat to keep tunnel fresh while sender is active
+app.post('/api/tunnel/heartbeat/:code', (req, res) => {
+  const { code } = req.params;
+  const tunnel = tunnels.get(code);
+  if (!tunnel) {
+    return res.status(404).json({ success: false, message: 'Tunnel not found' });
+  }
+  tunnel.lastHeartbeat = Date.now();
+  res.json({ success: true, code });
 });
 
 // 3. Get Tunnel / File Info by 6-digit Code
