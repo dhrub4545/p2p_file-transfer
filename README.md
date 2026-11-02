@@ -92,7 +92,7 @@ flowchart LR
     R_P2P <-->|"5. POST /signal & GET /poll (SDP & ICE)"| API
 
     %% Direct Transfer
-    S_P2P ===|"6. Direct Encrypted SCTP WebRTC Stream (Zero Server Bandwidth)"|===> R_P2P
+    S_P2P ==>|"6. Direct Encrypted SCTP WebRTC Stream (Zero Server Bandwidth)"| R_P2P
 ```
 
 ---
